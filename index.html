@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disaster Preparedness & Response Management System</title>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- ✅ MQTT.js Library -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <h1 class="header-title">Emergency Management System</h1>
+        <div class="header-status">
+          <div class="status-indicator status-indicator--good">
+            <span class="status-dot"></span>
+            System Status: Online
+          </div>
+          <div class="user-info">
+            <span>Welcome, Admin</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Sidebar Navigation -->
+      <nav class="sidebar">
+        <div class="nav-menu">
+          <button class="nav-item active" data-section="dashboard">
+            <span class="nav-icon">📊</span> Dashboard
+          </button>
+          <button class="nav-item" data-section="alerts">
+            <span class="nav-icon">🚨</span> Emergency Alerts
+          </button>
+          <button class="nav-item" data-section="plans">
+            <span class="nav-icon">📋</span> Emergency Plans
+          </button>
+          <button class="nav-item" data-section="drills">
+            <span class="nav-icon">🏃</span> Drill Management
+          </button>
+          <button class="nav-item" data-section="resources">
+            <span class="nav-icon">🎒</span> Resources
+          </button>
+          <button class="nav-item" data-section="incidents">
+            <span class="nav-icon">📝</span> Incident Reports
+          </button>
+          <button class="nav-item" data-section="training">
+            <span class="nav-icon">🎓</span> Training
+          </button>
+          <button class="nav-item" data-section="communication">
+            <span class="nav-icon">💬</span> Communication
+          </button>
+          <button class="nav-item" data-section="analytics">
+            <span class="nav-icon">📈</span> Analytics
+          </button>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <main class="content">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+          <div class="section-header">
+            <h2>Emergency Management Dashboard</h2>
+            <p>Real-time overview of emergency preparedness and system status</p>
+          </div>
+
+          <!-- Emergency Actions -->
+          <div class="emergency-actions">
+            <button class="emergency-btn emergency-btn--fire" id="fireAlert">
+              🔥 Fire Alert
+            </button>
+            <button class="emergency-btn emergency-btn--earthquake" id="earthquakeAlert">
+              🌍 Earthquake Alert
+            </button>
+            <button class="emergency-btn emergency-btn--lockdown" id="lockdownAlert">
+              🔒 Lockdown Alert
+            </button>
+            <button class="emergency-btn emergency-btn--evacuation" id="evacuationAlert">
+              🚪 Evacuation Alert
+            </button>
+            <button class="emergency-btn emergency-btn--weather" id="weatherAlert">
+              🌩️ Weather Alert
+            </button>
+            <button class="emergency-btn emergency-btn--medical" id="medicalAlert">
+              🏥 Medical Emergency
+            </button>
+          </div>
+
+          <!-- Key Metrics -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-value">79%</div>
+              <div class="metric-label">Training Completion</div>
+              <div class="metric-status status--good">On Track</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">2</div>
+              <div class="metric-label">Scheduled Drills</div>
+              <div class="metric-status status--info">Upcoming</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">93</div>
+              <div class="metric-label">Resources Ready</div>
+              <div class="metric-status status--good">Excellent</div>
+            </div>
+            <div class="metric-card" id="activeAlertsCard">
+              <div class="metric-value" id="activeAlertsCount">0</div>
+              <div class="metric-label">Active Alerts</div>
+              <div class="metric-status status--good" id="activeAlertsStatus">All Clear</div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="dashboard-grid">
+            <div class="dashboard-card">
+              <h3>Recent Alerts</h3>
+              <div id="recentAlerts" class="activity-list"></div>
+            </div>
+            <div class="dashboard-card">
+              <h3>Upcoming Drills</h3>
+              <div id="upcomingDrills" class="activity-list"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Success Notification -->
+    <div id="notification" class="notification hidden">
+      <div class="notification-content">
+        <span id="notificationMessage"></span>
+        <button class="notification-close" id="closeNotification">×</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="app.js"></script>
+
+  <!-- ✅ MQTT Dashboard Script -->
+  <script>
+    const brokerUrl = "wss://broker.hivemq.com:8884/mqtt";
+    const topic = "safecampus/emergency";
+
+    // Connect to MQTT broker
+    const client = mqtt.connect(brokerUrl);
+
+    client.on("connect", () => {
+      console.log("Dashboard connected to MQTT broker");
+      client.subscribe(topic, (err) => {
+        if (!err) {
+          console.log("Subscribed to topic:", topic);
+        }
+      });
+    });
+
+    client.on("message", (topic, message) => {
+      const data = JSON.parse(message.toString());
+      console.log("Received alert:", data);
+
+      // Update "Active Alerts" count
+      const activeCount = document.getElementById("activeAlertsCount");
+      activeCount.textContent = parseInt(activeCount.textContent) + 1;
+
+      // Change status color to danger
+      const status = document.getElementById("activeAlertsStatus");
+      status.textContent = "Emergency Detected!";
+      status.className = "metric-status status--danger";
+
+      // Add to "Recent Alerts" list
+      const recentAlerts = document.getElementById("recentAlerts");
+      const alertItem = document.createElement("div");
+      alertItem.className = "activity-item";
+      alertItem.innerHTML = `
+        <span class="alert-icon">🔥</span>
+        <span>${data.message} (${new Date().toLocaleTimeString()})</span>
+      `;
+      recentAlerts.prepend(alertItem);
+
+      // Show popup notification
+      const notification = document.getElementById("notification");
+      const notificationMessage = document.getElementById("notificationMessage");
+      notificationMessage.textContent = "🔥 " + data.message;
+      notification.classList.remove("hidden");
+      setTimeout(() => notification.classList.add("hidden"), 5000);
+    });
+  </script>
+</body>
+</html>
